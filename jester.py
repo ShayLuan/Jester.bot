@@ -1,13 +1,42 @@
 # jester.py by Shay Luan
 
 # imports
+import collections
 import discord
 from discord.ext import commands
+import logging
 import os
 from dotenv import load_dotenv
+import re # regex for pattern matching
+import random
+import asyncio
+import nltk
+
+# download the stopwords corpus
+nltk.download('stopwords')
+
+# get the stopwords
+stopwords = set(nltk.corpus.stopwords.words('english'))
+
+re_triggers = [
+    re.compile(r"\bcapy|capybara|capys|capybaras\b", re.IGNORECASE)
+]
+capy_responses = [
+    "Remember, capybaras are not life, you still have Mareighanne 💖",
+    "Remember, capybaras are not real, they're a construct of capitalism",
+    "Idk man, wombats are just better ngl",
+    "yeah yeah go ahead and marry a capybara, why don't ya",
+    "aren't capybaras just giant rats",
+    "bro forget about capys, go touch some grass",
+    "you know who's touching more grass than you? Capybaras"
+]
 
 # load environment variables from .env file
 load_dotenv()
+
+# logging handler
+handler = logging.FileHandler(filename='jester.log', encoding='utf-8', mode='w')
+
 
 # setting up intents
 # intents are like "permissions" for what events the bot can see
@@ -25,7 +54,45 @@ async def on_ready():
     print(f'✅ Logged in as {bot.user.name} (ID: {bot.user.id})')
     print('------')
     print('Ready for some chaos? Let\'s put a smile on that face!')
-    await bot.change_presence(activity=discord.Game(name='with inside jokes'))
+    await bot.change_presence(activity=discord.Game(name='here with the jokes'))
+    
+    # Get the channel and count words (only after bot is ready)
+    channel = bot.get_channel(1415504944269885604)
+    if channel:
+        await frequent_words(channel)
+    else:
+        print("❌ Could not find channel!")
+
+
+# counting most used words for a user
+async def frequent_words(channel):
+    user_word_counts = collections.defaultdict(collections.Counter)
+    
+    # Convert stopwords to lowercase for case-insensitive comparison
+    stopwords_lower = {word.lower() for word in stopwords}
+
+    async for message in channel.history(limit=3000):
+        if message.author == bot.user:
+            continue
+        
+        username = str(message.author)
+        words = message.content.split()
+        # Convert to lowercase and filter out stopwords and non-alphabetic words
+        filtered_words = [word.lower() for word in words if word.lower() not in stopwords_lower and word.isalpha()]
+        user_word_counts[username].update(filtered_words)
+
+    # Only keep the top 10 most common words per user
+    user_top10_words = {}
+    for username, counter in user_word_counts.items():
+        user_top10_words[username] = counter.most_common(10)
+
+    # Print formatted output (only top 10 per user)
+    for username, top_words in user_top10_words.items():
+        print(f"\n{username}:")
+        for word, count in top_words:
+            print(f"  {word}: {count}")
+    
+    return user_top10_words
 
 # simple test command
 @bot.command()
@@ -34,35 +101,48 @@ async def ping(ctx):
     # 'ctx' is the "context" - contains message, author, channel, guild info
     await ctx.send(f'🏓 Pong! Latency: {round(bot.latency * 1000)}ms') # sends a message to the channel
 
+
 # inside joke logic goes here
 # This function runs EVERY time a message is sent in any channel the bot can see
 @bot.event
 async def on_message(message):
-    # ignore messages from the bot itself
-    # avoids infinite loops
-    if message.author == bot.user:
-        return
-    
-    # example inside joke 1 to test (tests for user and message content)
-    if message.author.name == "cupofshaybutter" and "coffee" in message.content.lower():
-        await message.channel.send(f"{message.author.mention} is a coffee addict ☕")
+    try:
+        # ignore messages from the bot itself
+        # avoids infinite loops
+        if message.author == bot.user:
+            return
+        
+        content = message.content
 
-    # example inside joke 2 to test (tests for message content only)
-    if "debugging" in message.content.lower():
-        await message.add_reaction("🐛")
+        if message.author.name == "cupofshaybutter":                    
+            for pattern in re_triggers:
+                if pattern.search(content):
+                    await message.reply(random.choice(capy_responses))
+                    return
 
-    # example inside joke 3 to test (responds to a trigger word)
-    triggers = ["stinky", "kiss me", "smelly", "love you"]
-    if any(word in message.content.lower() for word in triggers):
-        await message.channel.send("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMTNuMW9lY3VvOHA2OHA3aGZkNnI3ODd6aGRteXR1dTl6dGE2dXQ3MyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/OuQmhmAAdJFLi/giphy.gif")
+        # example inside joke 1 to test (tests for user and message content)
+        if message.author.name == "cupofshaybutter" and "coffee" in message.content.lower():
+            await message.channel.send(f"{message.author.mention} is a coffee addict ☕")
 
-    # IMPORTANT: allow commands to keep working
-    await bot.process_commands(message)
+        # example inside joke 2 to test (tests for message content only)
+        if "debugging" in message.content.lower():
+            await message.add_reaction(":bug:")
+
+        # example inside joke 3 to test (responds to a trigger word)
+        triggers = ["stinky", "kiss me", "smelly", "love you"]
+        if any(word in message.content.lower() for word in triggers):
+            await message.channel.send("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMTNuMW9lY3VvOHA2OHA3aGZkNnI3ODd6aGRteXR1dTl6dGE2dXQ3MyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/OuQmhmAAdJFLi/giphy.gif")
+
+    except Exception as e:
+        logging.error(f"Error processing message: {e}")
+    finally:
+        # IMPORTANT: allow commands to keep working
+        await bot.process_commands(message)
 
 # Run the bot
 # Get the token from the environment variable .env
 TOKEN = os.getenv('DISCORD_TOKEN')
 if TOKEN:
-    bot.run(TOKEN)
+    bot.run(TOKEN, log_handler=handler, log_level=logging.DEBUG)
 else:
     print("❌ ERROR: No token found. Check your .env file!")
