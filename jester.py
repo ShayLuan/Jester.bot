@@ -11,6 +11,7 @@ import re # regex for pattern matching
 import random
 import asyncio
 import nltk
+import json
 
 # download the stopwords corpus
 nltk.download('stopwords')
@@ -30,6 +31,9 @@ capy_responses = [
     "bro forget about capys, go touch some grass",
     "you know who's touching more grass than you? Capybaras"
 ]
+
+# module level variables
+jokes = []
 
 # load environment variables from .env file
 load_dotenv()
@@ -62,6 +66,12 @@ async def on_ready():
         await frequent_words(channel)
     else:
         print("❌ Could not find channel!")
+    
+    # load jokes from jokes.json
+    global jokes
+    with open('jokes.json', 'r', encoding='utf-8') as f:
+        jokes = json.load(f)
+    print(f"Loaded {len(jokes)} jokes")
 
 
 # counting most used words for a user
@@ -86,8 +96,14 @@ async def frequent_words(channel):
     for username, counter in user_word_counts.items():
         user_top10_words[username] = counter.most_common(10)
 
-    # Print formatted output (only top 10 per user)
+    # Store top words in dict variables and print formatted output
     for username, top_words in user_top10_words.items():
+        # Create a variable name for this user's topwords dictionary
+        var_name = f"{username.replace(' ', '_').replace('#', '_').replace('-', '_')}_topwords"
+        # Build the dictionary of top words
+        topwords_dict = {word: count for word, count in top_words}
+        # Assign to globals() so it's available by variable name
+        globals()[var_name] = topwords_dict
         print(f"\n{username}:")
         for word, count in top_words:
             print(f"  {word}: {count}")
@@ -119,6 +135,24 @@ async def on_message(message):
                 if pattern.search(content):
                     await message.reply(random.choice(capy_responses))
                     return
+
+        # check if the bot is mentioned
+        if bot.user in message.mentions:
+            content = message.content.lower()
+
+            # respond to "tell me a joke" and "cheer me up"
+            if re.search(r"tell me a joke", content) or re.search(r"cheer me up", content):
+                clean_jokes = [joke for joke in jokes if not joke['mature']]
+                formatted_joke = random.choice(clean_jokes)['joke']
+                await message.reply(formatted_joke)
+                return
+
+            # respond to "tell me a dirty joke"
+            if re.search(r"tell me a dirty joke", content):
+                dirty_jokes = [joke for joke in jokes if joke['mature']]
+                formatted_joke = random.choice(dirty_jokes)['joke']
+                await message.reply(formatted_joke)
+                return
 
         # example inside joke 1 to test (tests for user and message content)
         if message.author.name == "cupofshaybutter" and "coffee" in message.content.lower():
