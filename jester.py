@@ -12,6 +12,7 @@ import random
 import asyncio
 import nltk
 import json
+import openai
 
 # download the stopwords corpus
 nltk.download('stopwords')
@@ -19,9 +20,10 @@ nltk.download('stopwords')
 # get the stopwords
 stopwords = set(nltk.corpus.stopwords.words('english'))
 
-re_triggers = [
-    re.compile(r"\bcapy|capybara|capys|capybaras\b", re.IGNORECASE)
-]
+re_triggers = {
+    "capy": re.compile(r"capy|capybara|capys|capybaras", re.IGNORECASE),
+    "fuck": re.compile(r"fuck|fucking|fucked|fk|fking|fcked|fcking|fuckin|fuckin'|fucker|fuckers", re.IGNORECASE)
+}
 capy_responses = [
     "Remember, capybaras are not life, you still have Mareighanne 💖",
     "Remember, capybaras are not real, they're a construct of capitalism",
@@ -34,9 +36,17 @@ capy_responses = [
 
 # module level variables
 jokes = []
+roast_data = []
 
 # load environment variables from .env file
 load_dotenv()
+
+# Get tokens and set up API keys
+TOKEN = os.getenv('DISCORD_TOKEN')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+
+# Create OpenAI client (v1.0+ API)
+openai_client = openai.OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
 # logging handler
 handler = logging.FileHandler(filename='jester.log', encoding='utf-8', mode='w')
@@ -49,7 +59,7 @@ intents.message_content = True  # needed to read messages
 intents.members = True  # needed to see who joins/leaves
 
 # creating the bot instance
-bot = commands.Bot(command_prefix='!', intents=intents)
+bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
 
 # READY event handler
 # this is called when the bot is ready and connected to Discord
@@ -61,7 +71,7 @@ async def on_ready():
     await bot.change_presence(activity=discord.Game(name='here with the jokes'))
     
     # Get the channel and count words (only after bot is ready)
-    channel = bot.get_channel(1415504944269885604)
+    channel = bot.get_channel(1415504944269885604) # change channel when needed
     if channel:
         await frequent_words(channel)
     else:
@@ -73,6 +83,11 @@ async def on_ready():
         jokes = json.load(f)
     print(f"Loaded {len(jokes)} jokes")
 
+    # load roast parameters from roast_parameters.json
+    global roast_data
+    with open('roast_profiles.json', 'r', encoding='utf-8') as f1:
+        roast_data = json.load(f1)
+    print(f"Loaded {len(roast_data)} roast parameters")
 
 # counting most used words for a user
 async def frequent_words(channel):
@@ -112,11 +127,107 @@ async def frequent_words(channel):
 
 # simple test command
 @bot.command()
+async def help(ctx):
+    """Show the help menu"""
+    await ctx.send("```" + "Commands:\n" + 
+    "!help - Show the help menu\n" + 
+    "!ping - Check if the bot is responsive\n" + 
+    "!joke - Tell a joke\n" + 
+    "!dirtyjoke - Tell a dirty joke\n" + 
+    "!roast <nickname> - Roast a user\n" +
+    "```")
+
+@bot.command()
 async def ping(ctx):
     """Pong! Check if the bot is responsive."""
     # 'ctx' is the "context" - contains message, author, channel, guild info
     await ctx.send(f'🏓 Pong! Latency: {round(bot.latency * 1000)}ms') # sends a message to the channel
 
+@bot.command()
+async def joke(ctx):
+    """Tell a joke"""
+    clean_jokes = [joke for joke in jokes if not joke['mature']]
+    formatted_joke = random.choice(clean_jokes)['joke']
+    await ctx.send(formatted_joke)
+
+@bot.command(name="dirtyjoke")
+async def dirty_joke(ctx):
+    """Tell a dirty joke"""
+    dirty_jokes = [joke for joke in jokes if joke['mature']]
+    formatted_joke = random.choice(dirty_jokes)['joke']
+    await ctx.send(formatted_joke)
+
+@bot.command()
+async def roast(ctx, nickname: str):
+    """Roast a user"""
+    # convert nickname to lowercase
+    nickname = nickname.lower()
+
+    # search for the profile in roast_data
+    found_user_id = None
+    found_profile = None
+    for userID, profile in roast_data.items():
+        if nickname in [n.lower() for n in profile["nickname"]]:  
+            found_user_id = int(userID)
+            found_profile = profile
+            break
+    
+    if not found_profile:
+        await ctx.send(f"who the fuck is {nickname}?")
+        return
+    
+    # Get the Discord user object
+    user = await bot.fetch_user(found_user_id)
+    if not user:
+        await ctx.send(f"Found profile for {nickname} but couldn't find the user in Discord.")
+        return
+    
+    # Use found_profile directly (we already have it)
+    roastee = found_profile
+    
+    # nickname is a list, so pick one or use user's display name
+    nick = random.choice(roastee["nickname"]) if roastee.get("nickname") else user.display_name
+    
+    # Get random items from lists
+    fun_fact = random.choice(roastee["fun_facts"]) if roastee.get("fun_facts") else ""
+    hobby = random.choice(roastee["hobbies"]) if roastee.get("hobbies") else ""
+    roast_style = random.choice(roastee["roast_style"]) if roastee.get("roast_style") else ""
+    extra_note = roastee.get("extra_note", "")
+
+    prompt = f"""You are a professional roast master. You are given a profile of a person and you need to roast them.
+            You are given the following information:
+            - Nickname: {nick}
+            - Fun Fact: {fun_fact}
+            - Hobby: {hobby}
+            - Roast Style: {roast_style}
+            - Extra Note: {extra_note}
+
+            You need to roast the person based on the information given.
+            There is no need to use every piece of information given.
+            One or two sentences is enough.
+            You need to roast the person in a way that is funny."""
+
+    try:
+        if not openai_client:
+            await ctx.send("OpenAI API key not configured.")
+            return
+        
+        # Use asyncio.to_thread to run the synchronous API call in a thread
+        response = await asyncio.to_thread(
+            openai_client.chat.completions.create,
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a professional roast master. You are given a profile of a person and you need to roast them."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.8,
+            max_tokens=100
+        )
+        roast = response.choices[0].message.content
+        await ctx.send(f"{user.mention} {roast}")
+    except Exception as e:
+        await ctx.send(f"Sorry, I couldn't generate a roast. Error: {str(e)}")
+        logging.error(f"OpenAI API error: {e}")
 
 # inside joke logic goes here
 # This function runs EVERY time a message is sent in any channel the bot can see
@@ -130,9 +241,7 @@ async def on_message(message):
         
         content = message.content
 
-        if message.author.name == "cupofshaybutter":                    
-            for pattern in re_triggers:
-                if pattern.search(content):
+        if message.author.name == "cupofshaybutter" and re_triggers["capy"].search(content.lower()):                     
                     await message.reply(random.choice(capy_responses))
                     return
 
@@ -158,6 +267,11 @@ async def on_message(message):
         if message.author.name == "cupofshaybutter" and "coffee" in message.content.lower():
             await message.channel.send(f"{message.author.mention} is a coffee addict ☕")
 
+        # shames stephen for saying bad words
+        if message.author.name == "cupofshaybutter" and re_triggers["fuck"].search(message.content.lower()):
+            await message.reply("https://tenor.com/view/bad-language-avengers-captain-america-maria-hill-ultron-gif-17239339")
+            return
+
         # example inside joke 2 to test (tests for message content only)
         if "debugging" in message.content.lower():
             await message.add_reaction(":bug:")
@@ -174,8 +288,6 @@ async def on_message(message):
         await bot.process_commands(message)
 
 # Run the bot
-# Get the token from the environment variable .env
-TOKEN = os.getenv('DISCORD_TOKEN')
 if TOKEN:
     bot.run(TOKEN, log_handler=handler, log_level=logging.DEBUG)
 else:
