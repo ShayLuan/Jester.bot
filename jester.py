@@ -158,7 +158,7 @@ async def dirty_joke(ctx):
     await ctx.send(formatted_joke)
 
 @bot.command()
-async def roast(ctx, nickname: str):
+async def roast(ctx, *, nickname: str):
     """Roast a user"""
     # convert nickname to lowercase
     nickname = nickname.lower()
@@ -182,29 +182,35 @@ async def roast(ctx, nickname: str):
         await ctx.send(f"Found profile for {nickname} but couldn't find the user in Discord.")
         return
     
-    # Use found_profile directly (we already have it)
+    # Use found_profile directly
     roastee = found_profile
     
-    # nickname is a list, so pick one or use user's display name
     nick = random.choice(roastee["nickname"]) if roastee.get("nickname") else user.display_name
     
-    # Get random items from lists
-    fun_fact = random.choice(roastee["fun_facts"]) if roastee.get("fun_facts") else ""
-    hobby = random.choice(roastee["hobbies"]) if roastee.get("hobbies") else ""
-    roast_style = random.choice(roastee["roast_style"]) if roastee.get("roast_style") else ""
+    # Get all items from lists
+    fun_facts = roastee.get("fun_facts", [])
+    hobbies = roastee.get("hobbies", [])
+    roast_styles = roastee.get("roast_style", [])
     extra_note = roastee.get("extra_note", "")
+
+    # Format lists as comma-separated strings for the prompt
+    fun_facts_str = ", ".join(fun_facts) if fun_facts else "None"
+    hobbies_str = ", ".join(hobbies) if hobbies else "None"
+    roast_styles_str = ", ".join(roast_styles) if roast_styles else "None"
 
     prompt = f"""You are a professional roast master. You are given a profile of a person and you need to roast them.
             You are given the following information:
             - Nickname: {nick}
-            - Fun Fact: {fun_fact}
-            - Hobby: {hobby}
-            - Roast Style: {roast_style}
+            - Fun Facts: {fun_facts_str}
+            - Hobbies: {hobbies_str}
+            - Roast Styles: {roast_styles_str}
             - Extra Note: {extra_note}
 
+            Choose AT MOST 1 fun fact and 1 hobby.
+            Consider the extra note when roasting.
             You need to roast the person based on the information given.
             There is no need to use every piece of information given.
-            One or two sentences is enough.
+            One sentence is enough.
             You need to roast the person in a way that is funny."""
 
     try:
@@ -220,7 +226,7 @@ async def roast(ctx, nickname: str):
                 {"role": "system", "content": "You are a professional roast master. You are given a profile of a person and you need to roast them."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.8,
+            temperature=0.7,
             max_tokens=100
         )
         roast = response.choices[0].message.content

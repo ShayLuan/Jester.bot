@@ -2,14 +2,14 @@
     "477332070071271434": {
         "nickname": ["barth", "elzabarth", "elizabeth", "kuzenbosimp", "jack nasty"],
         "fun_facts": ["fruity", "married to christian", "loves cute stuff", "loves frogs", "loves knitting"],
-        "hobbies": ["knitting", "crocheting", "sewing", "baking", "cooking", "gaming", "reading", "wrapping gifts"],
+        "hobbies": ["knitting", "crocheting", "sewing", "baking", "cooking", "gaming", "reading", "wrapping gifts", "watching anime"],
         "roast_style": ["sarcastic", "not too harsh", "funny"],
         "extra_note": "Very kind and gentle person, has a sense of humor and is very easy to talk to."
     },
 
     "148970975835193354": {
-        "nickname": ["shay", "shayleigh", "commie"],
-        "fun_facts": ["canadian chinese", "engaged to mareighanne", "older than everybody else in the server", "loves capybaras", "hates capitalism", "speaks Chinese, English, French(canadian), and Spanish"],
+        "nickname": ["shay", "shaeigh", "commie", "the commie"],
+        "fun_facts": ["canadian chinese", "engaged to mareighanne", "older than everybody else in the server", "loves capybaras", "hates capitalism", "speaks Chinese, English, French(canadian), and Spanish", "slightly homoerotic"],
         "hobbies": ["reading", "gaming", "coding", "cooking", "learning languages"],
         "roast_style": ["sarcastic", "brutally funny", "funny"],
         "extra_note": "roasts can be in any of the languages he speaks"
@@ -17,9 +17,41 @@
 
     "725412817452269658": {
         "nickname": ["nick", "bum wieners", "shortstack"],
-        "fun_facts": ["shorter than average", "in a relationship with madison", "loves basketball", "doesn't eat vegetables or fruits", "works for amazaon delivery"],
-        "hobbies": ["gaming", "hanging out with friends", "watching TV series"],
+        "fun_facts": ["shorter than average", "in a relationship with madison", "loves basketball", "doesn't eat vegetables or fruits", "works for amazon delivery", "slightly homoerotic"],
+        "hobbies": ["gaming", "hanging out with friends", "watching TV series", "watching sports", "watching anime"],
         "roast_style": ["sarcastic", "brutally funny", "funny"],
         "extra_note": "really funny person, has a sense of humor. Not afraid of short jokes."
+    },
+
+    "300830931835682816": {
+        "nickname": ["spen", "stephen", "stephen lewis", "lewis", "social twerker"],
+        "fun_facts": ["is a social worker", "married to leah", "cares about international news", "loves roasting people", "slightly homoerotic"],
+        "hobbies": ["reading", "gaming", "basketball", "hanging out with wifey", "watching sports"],
+        "roast_style": ["sarcastic", "brutally funny", "funny"],
+        "extra_note": "loves updating everyone on international/celebrity news"
+    },
+
+    "745838724511825940": {
+        "nickname": ["christian", "papi", "the mexican", "mister ortiz", "mr.ortiz"],
+        "fun_facts": ["is a cook", "married to barth/elizabeth", "is funny", "loves weed gummies", "slightly homoerotic"],
+        "hobbies": ["reading", "gaming", "working out", "hanging out with wifey", "cooking", "baking"],
+        "roast_style": ["sarcastic", "brutally funny", "funny"],
+        "extra_note": "lost a lot of weight, looks hella good now"
+    },
+
+    "825969173154496542": {
+        "nickname": ["austin", "austin william", "blevins", "austin blevins", "gun nut", "the gun nut"],
+        "fun_facts": ["loves guns", "lives in oklahoma", "is like a big teddy", "slightly homoerotic", "has a girlfriend"],
+        "hobbies": ["gaming", "working out", "hanging out with girlfriend", "cooking", "baking", "shooting guns", "watching sports", "watching anime"],
+        "roast_style": ["sarcastic", "brutally funny", "funny"],
+        "extra_note": "is a lovely person, loves dark humor"
+    },
+
+    "952651890380910612": {
+        "nickname": ["madison", "diablo sauce", "maddie"],
+        "fun_facts": ["is dating nick", "is very kind"],
+        "hobbies": ["knitting", "crocheting", "gaming", "reading", "watching anime", "watching tv series"],
+        "roast_style": ["sarcastic", "brutally funny", "funny"],
+        "extra_note": "is a lovely person, loves dark humor"
     }
 }
