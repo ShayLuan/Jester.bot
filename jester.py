@@ -158,6 +158,7 @@ async def dirty_joke(ctx):
     await ctx.send(formatted_joke)
 
 @bot.command()
+@commands.cooldown(1, 10, commands.BucketType.user) # cooldown of 10 seconds per user
 async def roast(ctx, *, nickname: str):
     """Roast a user"""
     # convert nickname to lowercase
@@ -209,9 +210,9 @@ async def roast(ctx, *, nickname: str):
             Choose AT MOST 1 fun fact and 1 hobby.
             Consider the extra note when roasting.
             You need to roast the person based on the information given.
-            There is no need to use every piece of information given.
-            One sentence is enough.
-            You need to roast the person in a way that is funny."""
+            DO NOT USE EVERY PIECE OF INFORMATION GIVEN. DO NOT BE TOO SPECIFIC.
+            One sentence is enough. 30 WORDS MAXIMUM.
+            Make it more witty than funny. """
 
     try:
         if not openai_client:
@@ -234,6 +235,82 @@ async def roast(ctx, *, nickname: str):
     except Exception as e:
         await ctx.send(f"Sorry, I couldn't generate a roast. Error: {str(e)}")
         logging.error(f"OpenAI API error: {e}")
+
+async def roast_back(ctx, discord_user_id: int):
+    """Roast a user back if they roast the bot"""
+    # Look up the profile directly by user ID
+    user_id_str = str(discord_user_id)
+    
+    if user_id_str not in roast_data:
+        # If user not in roast_data, still roast them but with limited info
+        user = await bot.fetch_user(discord_user_id)
+        if not user:
+            return  # Can't find user, silently fail
+        
+        # Simple roast without profile data
+        prompt = f"""You are a witty Discord bot that just got roasted. The user {user.display_name} said something mean about you. 
+        Roast them back in a funny, clever way. Keep it to one sentence. Be sassy but not too harsh."""
+    else:
+        # User has a profile, use it
+        found_profile = roast_data[user_id_str]
+        user = await bot.fetch_user(discord_user_id)
+        if not user:
+            return
+        
+        roastee = found_profile
+        
+        nick = random.choice(roastee["nickname"]) if roastee.get("nickname") else user.display_name
+        
+        # Get all items from lists
+        fun_facts = roastee.get("fun_facts", [])
+        hobbies = roastee.get("hobbies", [])
+        roast_styles = roastee.get("roast_style", [])
+        extra_note = roastee.get("extra_note", "")
+
+        # Format lists as comma-separated strings for the prompt
+        fun_facts_str = ", ".join(fun_facts) if fun_facts else "None"
+        hobbies_str = ", ".join(hobbies) if hobbies else "None"
+        roast_styles_str = ", ".join(roast_styles) if roast_styles else "None"
+
+        prompt = f"""You are a witty Discord bot that just got roasted by someone. They said something mean about you, and now you're roasting them back.
+        You are given the following information about the person who roasted you:
+        - Nickname: {nick}
+        - Fun Facts: {fun_facts_str}
+        - Hobbies: {hobbies_str}
+        - Roast Styles: {roast_styles_str}
+        - Extra Note: {extra_note}
+
+        Roast them back in a funny, clever way. Use their profile information to make it personal and witty.
+        Choose AT MOST 1 fun fact and 1 hobby to reference.
+        One sentence is enough. Be sassy but not too harsh. This is a friendly roast-back."""
+
+    try:
+        if not openai_client:
+            return  # Silently fail if no API key
+        
+        # Use asyncio.to_thread to run the synchronous API call in a thread
+        response = await asyncio.to_thread(
+            openai_client.chat.completions.create,
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a witty Discord bot that roasts users back when they say mean things about you."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=100
+        )
+        roast = response.choices[0].message.content
+        await ctx.send(f"{user.mention} {roast}")
+    except Exception as e:
+        logging.error(f"OpenAI API error in roast_back: {e}")
+        # Silently fail - don't send error message for auto-roasts
+
+@roast.error
+async def roast_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):       # cooldown error caught
+        await ctx.send(f"dude chill, calm your tatas and go touch some grass")
+    else:
+        await ctx.send(f"An error occurred: {str(error)}")
 
 # inside joke logic goes here
 # This function runs EVERY time a message is sent in any channel the bot can see
@@ -286,6 +363,11 @@ async def on_message(message):
         triggers = ["stinky", "kiss me", "smelly", "love you"]
         if any(word in message.content.lower() for word in triggers):
             await message.channel.send("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMTNuMW9lY3VvOHA2OHA3aGZkNnI3ODd6aGRteXR1dTl6dGE2dXQ3MyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/OuQmhmAAdJFLi/giphy.gif")
+
+        # Check for profanity/roasting
+        if re_triggers["fuck"].search(message.content.lower()) or any(word in message.content.lower() for word in ["shut up", "shut", "stupid", "dumb", "bad", "suck", "hate", "clanker", "clanka", "idiot", "moron", "dickhead", "dick", "asshole", "ass", "fuck", "fucking", "fucked", "fk", "fking", "fcked", "fcking", "fuckin", "fuckin'", "fucker", "fuckers"]):
+            await roast_back(message.channel, message.author.id)
+            return
 
     except Exception as e:
         logging.error(f"Error processing message: {e}")
