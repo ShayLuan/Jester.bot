@@ -207,12 +207,12 @@ async def roast(ctx, *, nickname: str):
             - Roast Styles: {roast_styles_str}
             - Extra Note: {extra_note}
 
-            Choose AT MOST 1 fun fact and 1 hobby.
+            Limit to 1 fun fact or hobby.
             Consider the extra note when roasting.
-            You need to roast the person based on the information given.
             DO NOT USE EVERY PIECE OF INFORMATION GIVEN. DO NOT BE TOO SPECIFIC.
-            One sentence is enough. 30 WORDS MAXIMUM.
-            Make it more witty than funny. """
+            One sentence is enough. 20 WORDS MAXIMUM.
+            Make it witty and funny. 
+            Profanity is allowed."""
 
     try:
         if not openai_client:
@@ -222,7 +222,7 @@ async def roast(ctx, *, nickname: str):
         # Use asyncio.to_thread to run the synchronous API call in a thread
         response = await asyncio.to_thread(
             openai_client.chat.completions.create,
-            model="gpt-4o-mini",
+            model="gpt-4.1",
             messages=[
                 {"role": "system", "content": "You are a professional roast master. You are given a profile of a person and you need to roast them."},
                 {"role": "user", "content": prompt}
@@ -291,7 +291,7 @@ async def roast_back(ctx, discord_user_id: int):
         # Use asyncio.to_thread to run the synchronous API call in a thread
         response = await asyncio.to_thread(
             openai_client.chat.completions.create,
-            model="gpt-4o-mini",
+            model="gpt-4.1",
             messages=[
                 {"role": "system", "content": "You are a witty Discord bot that roasts users back when they say mean things about you."},
                 {"role": "user", "content": prompt}
@@ -351,7 +351,7 @@ async def on_message(message):
             await message.channel.send(f"{message.author.mention} is a coffee addict ☕")
 
         # shames stephen for saying bad words
-        if message.author.name == "cupofshaybutter" and re_triggers["fuck"].search(message.content.lower()):
+        if message.author.name == "stephen974" and re_triggers["fuck"].search(message.content.lower()):
             await message.reply("https://tenor.com/view/bad-language-avengers-captain-america-maria-hill-ultron-gif-17239339")
             return
 
