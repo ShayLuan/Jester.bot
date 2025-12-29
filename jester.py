@@ -43,10 +43,13 @@ load_dotenv()
 
 # Get tokens and set up API keys
 TOKEN = os.getenv('DISCORD_TOKEN')
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY')
 
-# Create OpenAI client (v1.0+ API)
-openai_client = openai.OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
+# Create DeepSeek client (OpenAI-compatible API)
+deepseek_client = openai.OpenAI(
+    api_key=DEEPSEEK_API_KEY,
+    base_url="https://api.deepseek.com"
+) if DEEPSEEK_API_KEY else None
 
 # logging handler
 handler = logging.FileHandler(filename='jester.log', encoding='utf-8', mode='w')
@@ -215,14 +218,14 @@ async def roast(ctx, *, nickname: str):
             Profanity is allowed."""
 
     try:
-        if not openai_client:
-            await ctx.send("OpenAI API key not configured.")
+        if not deepseek_client:
+            await ctx.send("DeepSeek API key not configured.")
             return
         
         # Use asyncio.to_thread to run the synchronous API call in a thread
         response = await asyncio.to_thread(
-            openai_client.chat.completions.create,
-            model="gpt-4.1",
+            deepseek_client.chat.completions.create,
+            model="deepseek-chat",
             messages=[
                 {"role": "system", "content": "You are a professional roast master. You are given a profile of a person and you need to roast them."},
                 {"role": "user", "content": prompt}
@@ -234,7 +237,7 @@ async def roast(ctx, *, nickname: str):
         await ctx.send(f"{user.mention} {roast}")
     except Exception as e:
         await ctx.send(f"Sorry, I couldn't generate a roast. Error: {str(e)}")
-        logging.error(f"OpenAI API error: {e}")
+        logging.error(f"DeepSeek API error: {e}")
 
 async def roast_back(ctx, discord_user_id: int):
     """Roast a user back if they roast the bot"""
@@ -285,13 +288,13 @@ async def roast_back(ctx, discord_user_id: int):
         One sentence is enough. Be sassy but not too harsh. This is a friendly roast-back."""
 
     try:
-        if not openai_client:
+        if not deepseek_client:
             return  # Silently fail if no API key
         
         # Use asyncio.to_thread to run the synchronous API call in a thread
         response = await asyncio.to_thread(
-            openai_client.chat.completions.create,
-            model="gpt-4.1",
+            deepseek_client.chat.completions.create,
+            model="deepseek-chat",
             messages=[
                 {"role": "system", "content": "You are a witty Discord bot that roasts users back when they say mean things about you."},
                 {"role": "user", "content": prompt}
@@ -302,7 +305,7 @@ async def roast_back(ctx, discord_user_id: int):
         roast = response.choices[0].message.content
         await ctx.send(f"{user.mention} {roast}")
     except Exception as e:
-        logging.error(f"OpenAI API error in roast_back: {e}")
+        logging.error(f"DeepSeek API error in roast_back: {e}")
         # Silently fail - don't send error message for auto-roasts
 
 @roast.error
