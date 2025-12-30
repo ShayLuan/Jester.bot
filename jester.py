@@ -368,10 +368,15 @@ async def on_message(message):
             await message.channel.send("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMTNuMW9lY3VvOHA2OHA3aGZkNnI3ODd6aGRteXR1dTl6dGE2dXQ3MyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/OuQmhmAAdJFLi/giphy.gif")
 
         # Check for profanity/roasting
-        if re_triggers["fuck"].search(message.content.lower()) or any(word in message.content.lower() for word in ["shut up", "shut", "stupid", "dumb", "bad", "suck", "hate", "clanker", "clanka", "idiot", "moron", "dickhead", "dick", "asshole", "ass", "fuck", "fucking", "fucked", "fk", "fking", "fcked", "fcking", "fuckin", "fuckin'", "fucker", "fuckers"]):
+        # Check for profanity/roasting directed AT THE BOT
+        bot_mentioned = bot.user in message.mentions or bot.user.name.lower() in message.content.lower()
+        contains_profanity = re_triggers["fuck"].search(message.content.lower()) or any(word in message.content.lower() for word in ["shut up", "shut", "stupid", "dumb", "bad", "suck", "hate", "clanker", "clanka", "idiot", "moron", "dickhead", "dick", "asshole", "ass", "fuck", "fucking", "fucked", "fk", "fking", "fcked", "fcking", "fuckin", "fuckin'", "fucker", "fuckers"])
+
+        # Only roast back if BOTH conditions are true: contains profanity AND is directed at the bot
+        if bot_mentioned and contains_profanity:
             await roast_back(message.channel, message.author.id)
             return
-
+        
     except Exception as e:
         logging.error(f"Error processing message: {e}")
     finally:
