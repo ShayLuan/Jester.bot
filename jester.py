@@ -353,10 +353,10 @@ async def on_message(message):
         if message.author.name == "cupofshaybutter" and "coffee" in message.content.lower():
             await message.channel.send(f"{message.author.mention} is a coffee addict ☕")
 
-        # shames stephen for saying bad words
-        if message.author.name == "stephen974" and re_triggers["fuck"].search(message.content.lower()):
-            await message.reply("https://tenor.com/view/bad-language-avengers-captain-america-maria-hill-ultron-gif-17239339")
-            return
+        # # shames stephen for saying bad words
+        # if message.author.name == "stephen974" and re_triggers["fuck"].search(message.content.lower()):
+        #     await message.reply("https://tenor.com/view/bad-language-avengers-captain-america-maria-hill-ultron-gif-17239339")
+        #     return
 
         # example inside joke 2 to test (tests for message content only)
         if "debugging" in message.content.lower():
