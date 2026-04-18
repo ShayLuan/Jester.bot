@@ -362,11 +362,6 @@ async def on_message(message):
         if "debugging" in message.content.lower():
             await message.add_reaction(":bug:")
 
-        # example inside joke 3 to test (responds to a trigger word)
-        triggers = ["stinky", "kiss me", "smelly", "love you"]
-        if any(word in message.content.lower() for word in triggers):
-            await message.channel.send("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMTNuMW9lY3VvOHA2OHA3aGZkNnI3ODd6aGRteXR1dTl6dGE2dXQ3MyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/OuQmhmAAdJFLi/giphy.gif")
-
         # Check for profanity/roasting
         # Check for profanity/roasting directed AT THE BOT
         bot_mentioned = bot.user in message.mentions or bot.user.name.lower() in message.content.lower()
